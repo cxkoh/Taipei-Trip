@@ -1,0 +1,309 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Taipei 2026 ❤️</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #be185d; /* Pink 700 */
+            --bg-soft: #fff1f2; /* Pink 50 */
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-soft);
+            color: #374151;
+        }
+        h1, h2, h3 {
+            font-family: 'Playfair Display', serif;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .timeline-line {
+            position: absolute;
+            left: 24px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background-color: #e5e7eb;
+            z-index: 0;
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .nav-item.active {
+            background-color: #be185d;
+            color: white;
+            border-color: #be185d;
+        }
+        .type-food { border-left: 4px solid #f43f5e; }
+        .type-travel { border-left: 4px solid #3b82f6; }
+        .type-hotel { border-left: 4px solid #8b5cf6; }
+        .type-activity { border-left: 4px solid #10b981; }
+        .type-exam { border-left: 4px solid #6b7280; }
+    </style>
+</head>
+<body class="h-screen flex flex-col max-w-lg mx-auto bg-white shadow-2xl overflow-hidden relative">
+
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-pink-600 to-rose-500 text-white p-6 rounded-b-3xl shadow-lg relative z-10 flex-shrink-0">
+        <div class="flex justify-between items-start">
+            <div>
+                <p class="text-pink-100 text-sm font-medium tracking-widest uppercase mb-1">Our Trip To</p>
+                <h1 class="text-4xl font-bold mb-2">Taipei</h1>
+                <p class="text-pink-100 text-sm"><i class="fas fa-calendar-alt mr-2"></i>Apr 30 - May 9, 2026</p>
+            </div>
+            <div class="bg-white/20 p-2 rounded-full">
+                <i class="fas fa-plane text-2xl"></i>
+            </div>
+        </div>
+    </header>
+
+    <!-- Date Navigation -->
+    <nav class="py-4 px-4 bg-white/95 backdrop-blur z-20 border-b border-gray-100 flex-shrink-0">
+        <div class="flex space-x-3 overflow-x-auto hide-scrollbar pb-2" id="dateNav">
+            <!-- Nav items injected by JS -->
+        </div>
+    </nav>
+
+    <!-- Content Area -->
+    <main class="flex-1 overflow-y-auto p-4 relative" id="contentArea">
+        <!-- Timeline items injected by JS -->
+    </main>
+
+    <!-- Footer -->
+    <footer class="p-4 bg-gray-50 border-t text-center text-xs text-gray-400 flex-shrink-0">
+        Made with ❤️ for you
+    </footer>
+
+    <script>
+        // Data Structure
+        const schedule = [
+            {
+                id: 0, date: "Thu, Apr 30", short: "Apr 30", title: "Departure Day",
+                events: [
+                    { time: "13:00 - 15:00", title: "BSP1702 Examination", type: "exam", icon: "fa-book", desc: "Good luck! You got this." },
+                    { time: "15:00 - 16:00", title: "Eat & Pack", type: "activity", icon: "fa-utensils", desc: "Travel back to hall, quick meal." },
+                    { time: "16:00 - 18:00", title: "Transfer Home", type: "travel", icon: "fa-truck-moving", desc: "Move everything back home." },
+                    { time: "18:00 - 19:00", title: "Dinner", type: "food", icon: "fa-utensils", desc: "Fuel up before the flight." },
+                    { time: "19:00 - 22:00", title: "Final Prep", type: "activity", icon: "fa-suitcase", desc: "Last minute packing. Don't forget passport!" },
+                    { time: "22:00 - 23:00", title: "Train to Changi", type: "travel", icon: "fa-train", desc: "Heading to the airport." },
+                    { time: "23:00 - 01:00", title: "Check-in & Flight", type: "travel", icon: "fa-plane-departure", desc: "Check in and hop on the flight! ✈️" }
+                ]
+            },
+            {
+                id: 1, date: "Fri, May 1", short: "May 1", title: "Arrival & Taipei",
+            
+                events: [
+                    { time: "06:00", title: "Landed!", type: "travel", icon: "fa-plane-arrival", desc: "Welcome to Taiwan." },
+                    { time: "06:00 - 07:00", title: "Airport Checkout", type: "travel", icon: "fa-passport", desc: "Meet up time ❤️" },
+                    { time: "07:00 - 08:00", title: "Drop Luggage", type: "travel", icon: "fa-luggage-cart", desc: "Taxi to store luggage at Babes house." },
+                    { time: "08:00 - 08:30", title: "Metro Travel", type: "travel", icon: "fa-subway", desc: "Zhongxiao Fuxing → Shandao Temple (2 stops)." },
+                    { time: "08:30 - 10:00", title: "Fuhang Soy Milk", type: "food", icon: "fa-mug-hot", desc: "Must try: Hot soy milk, You Tiao, Pancakes.", budget: "Max NT$150", link: "https://share.google/tKL4TX0cxQoBxWSxD" },
+                    { time: "10:00 - 11:00", title: "Huashan 1914 Park", type: "activity", icon: "fa-camera", desc: "Walk around Creative Park.", link: "https://share.google/LTkX8sx4ckN6PrQs1" },
+                    { time: "11:00 - 12:30", title: "Taiwan Mama", type: "food", icon: "fa-bowl-rice", desc: "Noodles shop.", budget: "Max NT$700", link: "https://share.google/hYTXDavNR1GNmMhcK" },
+                    { time: "12:30 - 15:30", title: "Shopping Spree", type: "activity", icon: "fa-shopping-bag", desc: "Guanghua Digital Plaza, Syn Trend, Don Don Donki, Dream Paradise Toys.", budget: "Budget NT$2500", link: "https://share.google/kxxOeeQdmtExoSHPS" },
+                    { time: "15:30 - 16:00", title: "Uber to Hotel", type: "travel", icon: "fa-taxi", budget: "Max NT$200" },
+                    { time: "16:00 - 18:00", title: "Check-in: Palais de Chine", type: "hotel", icon: "fa-bed", desc: "Settle in and relax. (CRACK maybe?)" },
+                    { time: "18:00 - 19:00", title: "Dinner @ Q Square", type: "food", icon: "fa-utensils", desc: "Light bite at the mall connected to hotel." },
+                    { time: "19:00 - 21:00", title: "Ningxia Night Market", type: "food", icon: "fa-moon", desc: "Street food time!" },
+                    { time: "21:00 - 23:00", title: "Rest", type: "activity", icon: "fa-bath", desc: "Travel back to hotel, Shower, chill, CRACK and sleep." }
+                ]
+            },
+            {
+                id: 2, date: "Sat, May 2", short: "May 2", title: "Jiufen & Shifen",
+                
+                events: [
+                    { time: "09:00 - 11:00", title: "Yonghe Soy Milk", type: "food", icon: "fa-bread-slice", desc: "Walk & Eat at Ximending.", budget: "Max NT$250", link: "https://share.google/wldjC6OCIT7Qub87I" },
+                    { time: "11:00 - 13:00", title: "Liu Shandong Beef Noodles", type: "food", icon: "fa-bowl-food", desc: "Like Udon! Walk back to Taipei Main Station.", link: "https://maps.app.goo.gl/5JnkVRyomhy2Ld3w8" },
+                    { time: "13:00 - 20:30", title: "Jiufen & Shifen Tour", type: "activity", icon: "fa-mountain", desc: "Prepaid tour. Lanterns & Old Street.", budget: "NT$2000 Budget" },
+                    { time: "20:30", title: "Dinner & Bed", type: "food", icon: "fa-bed", desc: "Eat somewhere close then CRACK.", budget: "NT$1000 Budget" }
+                ]
+            },
+            {
+                id: 3, date: "Sun, May 3", short: "May 3", title: "Ximending Day",
+                
+                events: [
+                    { time: "09:30 - 11:00", title: "Xiao Long Bao", type: "food", icon: "fa-dumpling", desc: "Walk to Ximending.", link: "https://share.google/iwsZ5Psza5TcLImmb" },
+                    { time: "11:00 - 15:00", title: "Explore Ximending", type: "activity", icon: "fa-store", desc: "Walking and shopping." },
+                    { time: "15:00 - 17:00", title: "Teabreak / Rest", type: "food", icon: "fa-coffee", desc: "Back to hotel or LeMao Chef." },
+                    { time: "17:00 - 20:00", title: "Night Markets", type: "activity", icon: "fa-store-alt", desc: "Ximending or Shida night market." },
+                    { time: "20:00 +", title: "Movie Night", type: "activity", icon: "fa-tv", desc: "CRACK and watch shows." }
+                ]
+            },
+            {
+                id: 4, date: "Mon, May 4", short: "May 4", title: "Zhongshan & Miramar",
+                events: [
+                    { time: "08:30 - 10:00", title: "Comida Breakfast", type: "food", icon: "fa-egg", desc: "Walk and eat.", link: "https://maps.app.goo.gl/PBs7CG8CHTQLLj4u6" },
+                    { time: "10:00 - 11:00", title: "Check Out", type: "hotel", icon: "fa-suitcase", desc: "Luggage storage." },
+                    { time: "11:00 - 15:30", title: "Shop Zhongshan Dist.", type: "activity", icon: "fa-shopping-bag", desc: "Look for: Creamia, Waku Waku Pasta, Mitty.", links: [
+                        {name: "Creamia", url: "https://maps.app.goo.gl/uXBQEE6z5rrVYE2VA"},
+                        {name: "Waku Waku", url: "https://maps.app.goo.gl/19VzBuexSQre7PhE6"},
+                        {name: "Mitty", url: "https://maps.app.goo.gl/dshsvjcB5eUVCDpa6"}
+                    ] },
+                    { time: "15:30 - 17:00", title: "Check-in: Miramar", type: "hotel", icon: "fa-hotel", desc: "Explore hotel and room." },
+                    { time: "17:00 - 21:00", title: "Wuxing District", type: "activity", icon: "fa-city", desc: "Shopping / Eat somewhere close / Watch shows & CRACK." }
+                ]
+            },
+            {
+                id: 5, date: "Tue, May 5", short: "May 5", title: "Lalaport & Raohe",
+                events: [
+                    { time: "06:30 - 10:00", title: "Breakfast", type: "food", icon: "fa-coffee", budget: "NT$715 pp" },
+                    { time: "10:00 - 12:00", title: "Travel to Lalaport", type: "travel", icon: "fa-train", desc: "Newly opened mall." },
+                    { time: "12:00 - 17:00", title: "Shop & Lunch", type: "activity", icon: "fa-bag-shopping", desc: "Lalaport exploration." },
+                    { time: "17:00 - 19:00", title: "Raohe Night Market", type: "food", icon: "fa-fire", desc: "Travel and shop." },
+                    { time: "19:00 - 19:30", title: "Back to Hotel and CRACK", type: "travel", icon: "fa-taxi" }
+                ]
+            },
+            {
+                id: 6, date: "Wed, May 6", short: "May 6", title: "Karting & Tamsui",
+                events: [
+                    { time: "06:30 - 10:00", title: "Breakfast Spot", type: "food", icon: "fa-croissant", desc: "Try somewhere new." },
+                    { time: "10:00 - 11:00", title: "Travel to Karting", type: "travel", icon: "fa-car" },
+                    { time: "11:00 - 12:00", title: "Karting", type: "activity", icon: "fa-flag-checkered", desc: "Race time!" },
+                    { time: "12:00 - 12:30", title: "Travel to Tamsui", type: "travel", icon: "fa-map-marker-alt" },
+                    { time: "12:30 - 18:00", title: "Tamsui Old Street", type: "activity", icon: "fa-camera-retro", desc: "Sunset and street food." },
+                    { time: "18:00 - 20:00", title: "Dinner & Return & CRACK", type: "food", icon: "fa-utensils" }
+                ]
+            },
+            {
+                id: 7, date: "Thu, May 7", short: "May 7", title: "Taipei 101 Area",
+                events: [
+                    { time: "12:00", title: "Check Out", type: "hotel", icon: "fa-suitcase" },
+                    { time: "12:00 - 13:00", title: "Luggage @ Grand Hyatt", type: "travel", icon: "fa-hotel", desc: "Travel to Hyatt to store bags." },
+                    { time: "13:00 - 15:00", title: "Taipei 101 Shop", type: "activity", icon: "fa-building", desc: "Shopping time." },
+                    { time: "15:00 - 17:00", title: "Check-in: Grand Hyatt", type: "hotel", icon: "fa-key", desc: "Crack?" },
+                    { time: "17:00 - 19:00", title: "ATT 4 Fun", type: "food", icon: "fa-glass-cheers", desc: "Explore and grab dinner." }
+                ]
+            },
+            {
+                id: 8, date: "Fri, May 8", short: "May 8", title: "Luxury & Chill",
+                events: [
+                    { time: "06:30 - 10:00", title: "Hyatt Breakfast", type: "food", icon: "fa-bacon", budget: "NT$990 pp" },
+                    { time: "10:00 - 12:00", title: "Chill in Room", type: "activity", icon: "fa-bed", desc:"CRACK time" },
+                    { time: "12:00 - 14:00", title: "Second Floor Cafe", type: "food", icon: "fa-utensils", desc: "Breeze Nashan.", link: "https://maps.app.goo.gl/PBs7CG8CHTQLLj4u6" },
+                    { time: "14:00 - 16:00", title: "Taipei 101", type: "activity", icon: "fa-building", desc: "Go explore." },
+                    { time: "16:00 - 18:00", title: "Nua in Room", type: "activity", icon: "fa-couch", desc: "Relaxation." },
+                    { time: "18:00 - 21:00", title: "Dinner Buffet?", type: "food", icon: "fa-utensils", desc: "Feast!" }
+                ]
+            },
+            {
+                id: 9, date: "Sat, May 9", short: "May 9", title: "Home Sweet Home",
+                events: [
+                    { time: "Morning", title: "Check Out", type: "hotel", icon: "fa-door-open" },
+                    { time: "Afternoon", title: "Airport", type: "travel", icon: "fa-plane-departure", desc: "Eat somewhere and head to airport. Travel back to SG ;-; D:" }
+                ]
+            }
+        ];
+
+        // Init
+        const navContainer = document.getElementById('dateNav');
+        const contentContainer = document.getElementById('contentArea');
+        let activeDay = 1; // Start on May 1st usually better than departure day
+
+        function renderNav() {
+            navContainer.innerHTML = '';
+            schedule.forEach(day => {
+                const btn = document.createElement('button');
+                btn.className = `nav-item flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 border border-gray-200 ${day.id === activeDay ? 'active shadow-md' : 'bg-white text-gray-600 hover:bg-gray-50'}`;
+                btn.innerText = day.short;
+                btn.onclick = () => {
+                    activeDay = day.id;
+                    renderNav();
+                    renderContent();
+                };
+                navContainer.appendChild(btn);
+            });
+            // Auto scroll nav
+            const activeBtn = navContainer.children[activeDay];
+            if(activeBtn) {
+                activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            }
+        }
+
+        function renderContent() {
+            const dayData = schedule.find(d => d.id === activeDay);
+            
+            let html = `
+                <div class="fade-in pb-10">
+                    <div class="mb-6 px-2">
+                        <h2 class="text-2xl font-bold text-gray-800">${dayData.title}</h2>
+                        <p class="text-gray-500">${dayData.date}</p>
+                        ${dayData.budget ? `<span class="inline-block mt-2 px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold tracking-wide">Est. Spend: ${dayData.budget}</span>` : ''}
+                    </div>
+                    
+                    <div class="relative pl-6">
+                        <!-- Timeline Line -->
+                        <div class="timeline-line"></div>
+            `;
+
+            dayData.events.forEach(evt => {
+                // Link handling
+                let linkHtml = '';
+                if(evt.link) {
+                    linkHtml = `<a href="${evt.link}" target="_blank" class="inline-flex items-center mt-3 text-xs font-bold text-pink-600 hover:text-pink-800 bg-pink-50 px-3 py-1.5 rounded transition-colors"><i class="fas fa-map-marker-alt mr-1.5"></i> View Map</a>`;
+                }
+                if(evt.links) {
+                    evt.links.forEach(l => {
+                        linkHtml += `<a href="${l.url}" target="_blank" class="inline-flex items-center mt-3 mr-2 text-xs font-bold text-pink-600 hover:text-pink-800 bg-pink-50 px-3 py-1.5 rounded transition-colors"><i class="fas fa-map-marker-alt mr-1.5"></i> ${l.name}</a>`;
+                    })
+                }
+
+                // Budget badge inside card
+                let budgetBadge = evt.budget ? `<div class="absolute top-3 right-3 text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded">${evt.budget}</div>` : '';
+
+                html += `
+                    <div class="relative z-10 mb-6 group">
+                        <!-- Icon Bubble -->
+                        <div class="absolute -left-[35px] top-0 w-12 h-12 rounded-full border-4 border-white bg-white shadow-sm flex items-center justify-center text-gray-500 group-hover:scale-110 transition-transform duration-300">
+                            <i class="fas ${evt.icon} text-lg text-${evt.type === 'food' ? 'rose' : evt.type === 'travel' ? 'blue' : evt.type === 'hotel' ? 'purple' : 'emerald'}-500"></i>
+                        </div>
+
+                        <!-- Card -->
+                        <div class="glass-card rounded-2xl p-4 ml-4 type-${evt.type} hover:shadow-md transition-shadow">
+                            ${budgetBadge}
+                            <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">${evt.time}</span>
+                            <h3 class="text-lg font-bold text-gray-800 leading-tight mt-1">${evt.title}</h3>
+                            ${evt.desc ? `<p class="text-sm text-gray-600 mt-2 leading-relaxed">${evt.desc}</p>` : ''}
+                            <div class="flex flex-wrap">
+                                ${linkHtml}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `
+                    </div>
+                </div>
+            `;
+            
+            contentContainer.innerHTML = html;
+        }
+
+        // Run
+        renderNav();
+        renderContent();
+    </script>
+</body>
+</html>
