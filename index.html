@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -6,6 +6,10 @@
     <title>Taipei 2026 ❤️</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
@@ -45,7 +49,7 @@
             z-index: 0;
         }
         .fade-in {
-            animation: fadeIn 0.5s ease-in-out;
+            animation: fadeIn 0.4s ease-in-out;
         }
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
@@ -55,17 +59,43 @@
             background-color: #be185d;
             color: white;
             border-color: #be185d;
+            box-shadow: 0 4px 6px -1px rgba(190, 24, 93, 0.3);
         }
         .type-food { border-left: 4px solid #f43f5e; }
         .type-travel { border-left: 4px solid #3b82f6; }
         .type-hotel { border-left: 4px solid #8b5cf6; }
         .type-activity { border-left: 4px solid #10b981; }
         .type-exam { border-left: 4px solid #6b7280; }
+
+        /* Map Styles */
+        #mapModal {
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        #mapModal.hidden {
+            pointer-events: none;
+            opacity: 0;
+            transform: scale(0.95);
+        }
+        .custom-marker {
+            background-color: #be185d;
+            color: white;
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            text-align: center;
+            font-weight: bold;
+            font-size: 14px;
+            line-height: 24px; /* matches width/height */
+            width: 24px !important;
+            height: 24px !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
     </style>
 </head>
 <body class="h-screen flex flex-col max-w-lg mx-auto bg-white shadow-2xl overflow-hidden relative">
 
-    <!-- Header -->
     <header class="bg-gradient-to-r from-pink-600 to-rose-500 text-white p-6 rounded-b-3xl shadow-lg relative z-10 flex-shrink-0">
         <div class="flex justify-between items-start">
             <div>
@@ -73,31 +103,37 @@
                 <h1 class="text-4xl font-bold mb-2">Taipei</h1>
                 <p class="text-pink-100 text-sm"><i class="fas fa-calendar-alt mr-2"></i>Apr 30 - May 9, 2026</p>
             </div>
-            <div class="bg-white/20 p-2 rounded-full">
+            <div class="bg-white/20 p-2 rounded-full animate-pulse">
                 <i class="fas fa-plane text-2xl"></i>
             </div>
         </div>
     </header>
 
-    <!-- Date Navigation -->
     <nav class="py-4 px-4 bg-white/95 backdrop-blur z-20 border-b border-gray-100 flex-shrink-0">
         <div class="flex space-x-3 overflow-x-auto hide-scrollbar pb-2" id="dateNav">
-            <!-- Nav items injected by JS -->
-        </div>
+            </div>
     </nav>
 
-    <!-- Content Area -->
-    <main class="flex-1 overflow-y-auto p-4 relative" id="contentArea">
-        <!-- Timeline items injected by JS -->
-    </main>
+    <main class="flex-1 overflow-y-auto p-4 relative scroll-smooth" id="contentArea">
+        </main>
 
-    <!-- Footer -->
+    <div id="mapModal" class="hidden absolute inset-0 z-50 bg-white/95 backdrop-blur-sm flex flex-col">
+        <div class="p-4 bg-white shadow-sm flex justify-between items-center flex-shrink-0">
+            <h3 class="font-bold text-gray-800 text-lg"><i class="fas fa-map-marked-alt text-pink-600 mr-2"></i>Route Map</h3>
+            <button onclick="closeMap()" class="w-8 h-8 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 flex items-center justify-center">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div id="leafletMap" class="flex-1 w-full h-full bg-gray-100"></div>
+    </div>
+
     <footer class="p-4 bg-gray-50 border-t text-center text-xs text-gray-400 flex-shrink-0">
         Made with ❤️ for you
     </footer>
 
     <script>
-        // Data Structure
+        // --- DATA STRUCTURE ---
+        // Coords are [Lat, Lng]
         const schedule = [
             {
                 id: 0, date: "Thu, Apr 30", short: "Apr 30", title: "Departure Day",
@@ -108,81 +144,81 @@
                     { time: "18:00 - 19:00", title: "Dinner", type: "food", icon: "fa-utensils", desc: "Fuel up before the flight." },
                     { time: "19:00 - 22:00", title: "Final Prep", type: "activity", icon: "fa-suitcase", desc: "Last minute packing. Don't forget passport!" },
                     { time: "22:00 - 23:00", title: "Train to Changi", type: "travel", icon: "fa-train", desc: "Heading to the airport." },
-                    { time: "23:00 - 01:00", title: "Check-in & Flight", type: "travel", icon: "fa-plane-departure", desc: "Check in and hop on the flight! ✈️" }
+                    { time: "23:00 - 01:00", title: "Check-in & Flight", type: "travel", icon: "fa-plane-departure", desc: "Check in and hop on the flight! ✈️", coords: [1.3644, 103.9915] }
                 ]
             },
             {
                 id: 1, date: "Fri, May 1", short: "May 1", title: "Arrival & Taipei",
-            
                 events: [
-                    { time: "06:00", title: "Landed!", type: "travel", icon: "fa-plane-arrival", desc: "Welcome to Taiwan." },
+                    { time: "06:00", title: "Landed at Taoyuan!", type: "travel", icon: "fa-plane-arrival", desc: "Welcome to Taiwan.", coords: [25.0797, 121.2342] },
                     { time: "06:00 - 07:00", title: "Airport Checkout", type: "travel", icon: "fa-passport", desc: "Meet up time ❤️" },
                     { time: "07:00 - 08:00", title: "Drop Luggage", type: "travel", icon: "fa-luggage-cart", desc: "Taxi to store luggage at Babes house." },
                     { time: "08:00 - 08:30", title: "Metro Travel", type: "travel", icon: "fa-subway", desc: "Zhongxiao Fuxing → Shandao Temple (2 stops)." },
-                    { time: "08:30 - 10:00", title: "Fuhang Soy Milk", type: "food", icon: "fa-mug-hot", desc: "Must try: Hot soy milk, You Tiao, Pancakes.", budget: "Max NT$150", link: "https://share.google/tKL4TX0cxQoBxWSxD" },
-                    { time: "10:00 - 11:00", title: "Huashan 1914 Park", type: "activity", icon: "fa-camera", desc: "Walk around Creative Park.", link: "https://share.google/LTkX8sx4ckN6PrQs1" },
-                    { time: "11:00 - 12:30", title: "Taiwan Mama", type: "food", icon: "fa-bowl-rice", desc: "Noodles shop.", budget: "Max NT$700", link: "https://share.google/hYTXDavNR1GNmMhcK" },
-                    { time: "12:30 - 15:30", title: "Shopping Spree", type: "activity", icon: "fa-shopping-bag", desc: "Guanghua Digital Plaza, Syn Trend, Don Don Donki, Dream Paradise Toys.", budget: "Budget NT$2500", link: "https://share.google/kxxOeeQdmtExoSHPS" },
+                    { time: "08:30 - 10:00", title: "Fuhang Soy Milk", type: "food", icon: "fa-mug-hot", desc: "Michelin-recommended breakfast. Hot soy milk & You Tiao.", budget: "Max NT$150", link: "https://share.google/tKL4TX0cxQoBxWSxD", coords: [25.0443, 121.5247] },
+                    { time: "10:00 - 11:00", title: "Huashan 1914 Park", type: "activity", icon: "fa-camera", desc: "Old winery turned creative art space.", link: "https://share.google/LTkX8sx4ckN6PrQs1", coords: [25.0443, 121.5294] },
+                    { time: "11:00 - 12:30", title: "Taiwan Mama", type: "food", icon: "fa-bowl-rice", desc: "Authentic local flavors. Beef Noodles.", budget: "Max NT$700", link: "https://share.google/hYTXDavNR1GNmMhcK", coords: [25.0445, 121.5170] },
+                    { time: "12:30 - 15:30", title: "Shopping Spree", type: "activity", icon: "fa-shopping-bag", desc: "Guanghua Digital Plaza, Syn Trend, Don Don Donki.", budget: "Budget NT$2500", link: "https://share.google/kxxOeeQdmtExoSHPS", coords: [25.0453, 121.5317] },
                     { time: "15:30 - 16:00", title: "Uber to Hotel", type: "travel", icon: "fa-taxi", budget: "Max NT$200" },
-                    { time: "16:00 - 18:00", title: "Check-in: Palais de Chine", type: "hotel", icon: "fa-bed", desc: "Settle in and relax. (CRACK maybe?)" },
-                    { time: "18:00 - 19:00", title: "Dinner @ Q Square", type: "food", icon: "fa-utensils", desc: "Light bite at the mall connected to hotel." },
-                    { time: "19:00 - 21:00", title: "Ningxia Night Market", type: "food", icon: "fa-moon", desc: "Street food time!" },
+                    { time: "16:00 - 18:00", title: "Check-in: Palais de Chine", type: "hotel", icon: "fa-bed", desc: "5-Star European luxury. (CRACK maybe?)", link: "https://maps.app.goo.gl/wN48AnQTXnbWEypH8", coords: [25.0494, 121.5173] },
+                    { time: "18:00 - 19:00", title: "Dinner @ Q Square", type: "food", icon: "fa-utensils", desc: "Connected to hotel. Modern mall food court.", link: "https://maps.app.goo.gl/TiLFwFDP9cvLZ4j77" },
+                    { time: "19:00 - 21:00", title: "Ningxia Night Market", type: "food", icon: "fa-moon", desc: "Street food time! Fried Taro Balls.", link: "https://maps.app.goo.gl/aRycEWxZbvivxAdT9", coords: [25.0569, 121.5155] },
                     { time: "21:00 - 23:00", title: "Rest", type: "activity", icon: "fa-bath", desc: "Travel back to hotel, Shower, chill, CRACK and sleep." }
                 ]
             },
             {
                 id: 2, date: "Sat, May 2", short: "May 2", title: "Jiufen & Shifen",
-                
                 events: [
-                    { time: "09:00 - 11:00", title: "Yonghe Soy Milk", type: "food", icon: "fa-bread-slice", desc: "Walk & Eat at Ximending.", budget: "Max NT$250", link: "https://share.google/wldjC6OCIT7Qub87I" },
-                    { time: "11:00 - 13:00", title: "Liu Shandong Beef Noodles", type: "food", icon: "fa-bowl-food", desc: "Like Udon! Walk back to Taipei Main Station.", link: "https://maps.app.goo.gl/5JnkVRyomhy2Ld3w8" },
-                    { time: "13:00 - 20:30", title: "Jiufen & Shifen Tour", type: "activity", icon: "fa-mountain", desc: "Prepaid tour. Lanterns & Old Street.", budget: "NT$2000 Budget" },
+                    { time: "09:00 - 11:00", title: "Yonghe Soy Milk", type: "food", icon: "fa-bread-slice", desc: "Ximending Breakfast.", budget: "Max NT$250", link: "https://share.google/wldjC6OCIT7Qub87I", coords: [25.0430, 121.5070] },
+                    { time: "11:00 - 13:00", title: "Liu Shandong Beef Noodles", type: "food", icon: "fa-bowl-food", desc: "Like Udon! Near Main Station.", link: "https://maps.app.goo.gl/5JnkVRyomhy2Ld3w8", coords: [25.0460, 121.5135] },
+                    { time: "13:00 - 20:30", title: "Jiufen & Shifen Tour", type: "activity", icon: "fa-mountain", desc: "Prepaid tour. Lanterns & Teahouses.", budget: "NT$2000 Budget", links: [
+                        {name: "Jiufen", url: "https://maps.app.goo.gl/8FjYsM1AvVNdyYqn8"},
+                        {name: "Shifen", url: "https://maps.app.goo.gl/2rfLiJ9NyXH14Qwq8"}
+                    ], coords: [25.1099, 121.8452] }, 
                     { time: "20:30", title: "Dinner & Bed", type: "food", icon: "fa-bed", desc: "Eat somewhere close then CRACK.", budget: "NT$1000 Budget" }
                 ]
             },
             {
                 id: 3, date: "Sun, May 3", short: "May 3", title: "Ximending Day",
-                
                 events: [
                     { time: "09:30 - 11:00", title: "Xiao Long Bao", type: "food", icon: "fa-dumpling", desc: "Walk to Ximending.", link: "https://share.google/iwsZ5Psza5TcLImmb" },
-                    { time: "11:00 - 15:00", title: "Explore Ximending", type: "activity", icon: "fa-store", desc: "Walking and shopping." },
-                    { time: "15:00 - 17:00", title: "Teabreak / Rest", type: "food", icon: "fa-coffee", desc: "Back to hotel or LeMao Chef." },
-                    { time: "17:00 - 20:00", title: "Night Markets", type: "activity", icon: "fa-store-alt", desc: "Ximending or Shida night market." },
+                    { time: "11:00 - 15:00", title: "Explore Ximending", type: "activity", icon: "fa-store", desc: "The 'Harajuku' of Taipei. Rainbow crossing & Red House.", link: "https://maps.app.goo.gl/qRmHBaqPHPQZ19Yx8", coords: [25.0422, 121.5080] },
+                    { time: "15:00 - 17:00", title: "Teabreak / Rest", type: "food", icon: "fa-coffee", desc: "Back to hotel or chill at LeMao Chef.", link: "https://maps.app.goo.gl/ScuTJCevUmLgvgek9", coords: [25.0440, 121.5060] },
+                    { time: "17:00 - 20:00", title: "Night Markets", type: "activity", icon: "fa-store-alt", desc: "Exploring Ximending Night Market area.", link: "https://maps.app.goo.gl/TU8sqoSD6ofKHYP28", coords: [25.0435, 121.5045] },
                     { time: "20:00 +", title: "Movie Night", type: "activity", icon: "fa-tv", desc: "CRACK and watch shows." }
                 ]
             },
             {
                 id: 4, date: "Mon, May 4", short: "May 4", title: "Zhongshan & Miramar",
                 events: [
-                    { time: "08:30 - 10:00", title: "Comida Breakfast", type: "food", icon: "fa-egg", desc: "Walk and eat.", link: "https://maps.app.goo.gl/PBs7CG8CHTQLLj4u6" },
+                    { time: "08:30 - 10:00", title: "Comida Breakfast", type: "food", icon: "fa-egg", desc: "Walk and eat. Famous for cheese tuna toast.", link: "https://maps.app.goo.gl/PBs7CG8CHTQLLj4u6", coords: [25.0520, 121.5230] },
                     { time: "10:00 - 11:00", title: "Check Out", type: "hotel", icon: "fa-suitcase", desc: "Luggage storage." },
-                    { time: "11:00 - 15:30", title: "Shop Zhongshan Dist.", type: "activity", icon: "fa-shopping-bag", desc: "Look for: Creamia, Waku Waku Pasta, Mitty.", links: [
+                    { time: "11:00 - 15:30", title: "Shop Zhongshan Dist.", type: "activity", icon: "fa-shopping-bag", desc: "Trendy alleyways. Creamia, Waku Waku, Mitty.", links: [
                         {name: "Creamia", url: "https://maps.app.goo.gl/uXBQEE6z5rrVYE2VA"},
                         {name: "Waku Waku", url: "https://maps.app.goo.gl/19VzBuexSQre7PhE6"},
                         {name: "Mitty", url: "https://maps.app.goo.gl/dshsvjcB5eUVCDpa6"}
-                    ] },
-                    { time: "15:30 - 17:00", title: "Check-in: Miramar", type: "hotel", icon: "fa-hotel", desc: "Explore hotel and room." },
-                    { time: "17:00 - 21:00", title: "Wuxing District", type: "activity", icon: "fa-city", desc: "Shopping / Eat somewhere close / Watch shows & CRACK." }
+                    ], coords: [25.0535, 121.5210] },
+                    { time: "15:30 - 17:00", title: "Check-in: Miramar", type: "hotel", icon: "fa-hotel", desc: "Miramar Garden Hotel. 5-Star comfort with pool.", link: "https://maps.app.goo.gl/JQ4BuDXJa5uw9Kv19", coords: [25.0427, 121.5358] },
+                    { time: "17:00 - 21:00", title: "Wuxing District", type: "activity", icon: "fa-city", desc: "Shopping / Eat somewhere close / CRACK.", link: "https://maps.app.goo.gl/rDmpuAp6tnacJKjYA", coords: [25.0315, 121.5605] }
                 ]
             },
             {
                 id: 5, date: "Tue, May 5", short: "May 5", title: "Lalaport & Raohe",
                 events: [
-                    { time: "06:30 - 10:00", title: "Breakfast", type: "food", icon: "fa-coffee", budget: "NT$715 pp" },
-                    { time: "10:00 - 12:00", title: "Travel to Lalaport", type: "travel", icon: "fa-train", desc: "Newly opened mall." },
-                    { time: "12:00 - 17:00", title: "Shop & Lunch", type: "activity", icon: "fa-bag-shopping", desc: "Lalaport exploration." },
-                    { time: "17:00 - 19:00", title: "Raohe Night Market", type: "food", icon: "fa-fire", desc: "Travel and shop." },
+                    { time: "06:30 - 10:00", title: "Breakfast @ Miramar", type: "food", icon: "fa-coffee", budget: "NT$715 per person", coords: [25.0427, 121.5358] },
+                    { time: "10:00 - 12:00", title: "Travel to Lalaport", type: "travel", icon: "fa-train", desc: "Heading to Nangang district." },
+                    { time: "12:00 - 17:00", title: "Shop & Lunch", type: "activity", icon: "fa-bag-shopping", desc: "Lalaport exploration. Massive Japanese mall.", link: "https://maps.app.goo.gl/jRMomUDLW2Ukxup99", coords: [25.0575, 121.5905] },
+                    { time: "17:00 - 19:00", title: "Raohe Night Market", type: "food", icon: "fa-fire", desc: "Try the Fuzhou Black Pepper Buns!", link: "https://maps.app.goo.gl/E6udToJjRw9XzmBa7", coords: [25.0509, 121.5775] },
                     { time: "19:00 - 19:30", title: "Back to Hotel and CRACK", type: "travel", icon: "fa-taxi" }
                 ]
             },
             {
                 id: 6, date: "Wed, May 6", short: "May 6", title: "Karting & Tamsui",
                 events: [
-                    { time: "06:30 - 10:00", title: "Breakfast Spot", type: "food", icon: "fa-croissant", desc: "Try somewhere new." },
+                    { time: "06:30 - 10:00", title: "Breakfast Spot", type: "food", icon: "fa-croissant", desc: "Try somewhere new.", coords: [25.0427, 121.5358] },
                     { time: "10:00 - 11:00", title: "Travel to Karting", type: "travel", icon: "fa-car" },
-                    { time: "11:00 - 12:00", title: "Karting", type: "activity", icon: "fa-flag-checkered", desc: "Race time!" },
+                    { time: "11:00 - 12:00", title: "Karting @ LoveKarting", type: "activity", icon: "fa-flag-checkered", desc: "Race time! Located in Bali district.", link: "https://maps.app.goo.gl/rm4UxFvS3xPVVecd6", coords: [25.1388, 121.4022] },
                     { time: "12:00 - 12:30", title: "Travel to Tamsui", type: "travel", icon: "fa-map-marker-alt" },
-                    { time: "12:30 - 18:00", title: "Tamsui Old Street", type: "activity", icon: "fa-camera-retro", desc: "Sunset and street food." },
+                    { time: "12:30 - 18:00", title: "Tamsui Old Street", type: "activity", icon: "fa-camera-retro", desc: "Sunset by the river. 'Ah-Gei' & Iron Eggs.", link: "https://maps.app.goo.gl/rfHLhuMDF6JdwzVt7", coords: [25.1695, 121.4427] },
                     { time: "18:00 - 20:00", title: "Dinner & Return & CRACK", type: "food", icon: "fa-utensils" }
                 ]
             },
@@ -191,18 +227,18 @@
                 events: [
                     { time: "12:00", title: "Check Out", type: "hotel", icon: "fa-suitcase" },
                     { time: "12:00 - 13:00", title: "Luggage @ Grand Hyatt", type: "travel", icon: "fa-hotel", desc: "Travel to Hyatt to store bags." },
-                    { time: "13:00 - 15:00", title: "Taipei 101 Shop", type: "activity", icon: "fa-building", desc: "Shopping time." },
-                    { time: "15:00 - 17:00", title: "Check-in: Grand Hyatt", type: "hotel", icon: "fa-key", desc: "Crack?" },
-                    { time: "17:00 - 19:00", title: "ATT 4 Fun", type: "food", icon: "fa-glass-cheers", desc: "Explore and grab dinner." }
+                    { time: "13:00 - 15:00", title: "Taipei 101 Shop", type: "activity", icon: "fa-building", desc: "It is bougie. Luxury brands.", link: "https://maps.app.goo.gl/2F9zQHYopt8eY4g16", coords: [25.0339, 121.5644] },
+                    { time: "15:00 - 17:00", title: "Check-in: Grand Hyatt", type: "hotel", icon: "fa-key", desc: "Ultra-luxury stay. Crack?", link: "https://maps.app.goo.gl/5uV6N4eSgH8E26Bw5", coords: [25.0354, 121.5610] },
+                    { time: "17:00 - 19:00", title: "ATT 4 Fun", type: "food", icon: "fa-glass-cheers", desc: "Rooftop views, shopping & dinner.", link: "https://maps.app.goo.gl/cTke6n7dfKaLqdma6", coords: [25.0355, 121.5661] }
                 ]
             },
             {
                 id: 8, date: "Fri, May 8", short: "May 8", title: "Luxury & Chill",
                 events: [
-                    { time: "06:30 - 10:00", title: "Hyatt Breakfast", type: "food", icon: "fa-bacon", budget: "NT$990 pp" },
+                    { time: "06:30 - 10:00", title: "Hyatt Breakfast", type: "food", icon: "fa-bacon", budget: "NT$990 per person", coords: [25.0354, 121.5610] },
                     { time: "10:00 - 12:00", title: "Chill in Room", type: "activity", icon: "fa-bed", desc:"CRACK time" },
-                    { time: "12:00 - 14:00", title: "Second Floor Cafe", type: "food", icon: "fa-utensils", desc: "Breeze Nashan.", link: "https://maps.app.goo.gl/PBs7CG8CHTQLLj4u6" },
-                    { time: "14:00 - 16:00", title: "Taipei 101", type: "activity", icon: "fa-building", desc: "Go explore." },
+                    { time: "12:00 - 14:00", title: "Second Floor Cafe", type: "food", icon: "fa-utensils", desc: "Breeze Nanshan.", link: "https://maps.app.goo.gl/PBs7CG8CHTQLLj4u6", coords: [25.0345, 121.5670] },
+                    { time: "14:00 - 16:00", title: "Taipei 101 Observatory", type: "activity", icon: "fa-building", desc: "Iconic skyscraper.", link: "https://maps.app.goo.gl/E6WfU5HmrToaPywX6", coords: [25.0339, 121.5644] },
                     { time: "16:00 - 18:00", title: "Nua in Room", type: "activity", icon: "fa-couch", desc: "Relaxation." },
                     { time: "18:00 - 21:00", title: "Dinner Buffet?", type: "food", icon: "fa-utensils", desc: "Feast!" }
                 ]
@@ -210,22 +246,24 @@
             {
                 id: 9, date: "Sat, May 9", short: "May 9", title: "Home Sweet Home",
                 events: [
-                    { time: "Morning", title: "Check Out", type: "hotel", icon: "fa-door-open" },
-                    { time: "Afternoon", title: "Airport", type: "travel", icon: "fa-plane-departure", desc: "Eat somewhere and head to airport. Travel back to SG ;-; D:" }
+                    { time: "Morning", title: "Check Out", type: "hotel", icon: "fa-door-open", desc: "One last CRACK and check out D:" },
+                    { time: "Afternoon", title: "Taoyuan Airport", type: "travel", icon: "fa-plane-departure", desc: "Travel back to SG ;-; D:", coords: [25.0797, 121.2342] }
                 ]
             }
         ];
 
-        // Init
+        // --- APP LOGIC ---
         const navContainer = document.getElementById('dateNav');
         const contentContainer = document.getElementById('contentArea');
-        let activeDay = 1; // Start on May 1st usually better than departure day
+        const mapModal = document.getElementById('mapModal');
+        let activeDay = 1; 
+        let map = null; // Leaflet instance
 
         function renderNav() {
             navContainer.innerHTML = '';
             schedule.forEach(day => {
                 const btn = document.createElement('button');
-                btn.className = `nav-item flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 border border-gray-200 ${day.id === activeDay ? 'active shadow-md' : 'bg-white text-gray-600 hover:bg-gray-50'}`;
+                btn.className = `nav-item flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 border border-gray-200 ${day.id === activeDay ? 'active transform scale-105' : 'bg-white text-gray-600 hover:bg-gray-50'}`;
                 btn.innerText = day.short;
                 btn.onclick = () => {
                     activeDay = day.id;
@@ -234,7 +272,6 @@
                 };
                 navContainer.appendChild(btn);
             });
-            // Auto scroll nav
             const activeBtn = navContainer.children[activeDay];
             if(activeBtn) {
                 activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
@@ -242,26 +279,37 @@
         }
 
         function renderContent() {
+            // FIX: Scroll to top logic
+            contentContainer.scrollTop = 0;
+
             const dayData = schedule.find(d => d.id === activeDay);
             
+            // Count map points to see if we show the button
+            const mapPoints = dayData.events.filter(e => e.coords).length;
+
             let html = `
                 <div class="fade-in pb-10">
-                    <div class="mb-6 px-2">
-                        <h2 class="text-2xl font-bold text-gray-800">${dayData.title}</h2>
-                        <p class="text-gray-500">${dayData.date}</p>
-                        ${dayData.budget ? `<span class="inline-block mt-2 px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold tracking-wide">Est. Spend: ${dayData.budget}</span>` : ''}
+                    <div class="mb-6 px-2 flex justify-between items-end">
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-800">${dayData.title}</h2>
+                            <p class="text-gray-500">${dayData.date}</p>
+                            ${dayData.budget ? `<span class="inline-block mt-2 px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold tracking-wide">Est. Spend: ${dayData.budget}</span>` : ''}
+                        </div>
+                        ${mapPoints > 0 ? `
+                            <button onclick="openMap()" class="mb-1 bg-gradient-to-r from-pink-500 to-rose-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all">
+                                <i class="fas fa-map-marked-alt mr-1"></i> View Route
+                            </button>
+                        ` : ''}
                     </div>
                     
                     <div class="relative pl-6">
-                        <!-- Timeline Line -->
                         <div class="timeline-line"></div>
             `;
 
-            dayData.events.forEach(evt => {
-                // Link handling
+            dayData.events.forEach((evt, index) => {
                 let linkHtml = '';
                 if(evt.link) {
-                    linkHtml = `<a href="${evt.link}" target="_blank" class="inline-flex items-center mt-3 text-xs font-bold text-pink-600 hover:text-pink-800 bg-pink-50 px-3 py-1.5 rounded transition-colors"><i class="fas fa-map-marker-alt mr-1.5"></i> View Map</a>`;
+                    linkHtml = `<a href="${evt.link}" target="_blank" class="inline-flex items-center mt-3 text-xs font-bold text-pink-600 hover:text-pink-800 bg-pink-50 px-3 py-1.5 rounded transition-colors"><i class="fas fa-map-marker-alt mr-1.5"></i> Google Maps</a>`;
                 }
                 if(evt.links) {
                     evt.links.forEach(l => {
@@ -269,17 +317,14 @@
                     })
                 }
 
-                // Budget badge inside card
                 let budgetBadge = evt.budget ? `<div class="absolute top-3 right-3 text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded">${evt.budget}</div>` : '';
 
                 html += `
                     <div class="relative z-10 mb-6 group">
-                        <!-- Icon Bubble -->
                         <div class="absolute -left-[35px] top-0 w-12 h-12 rounded-full border-4 border-white bg-white shadow-sm flex items-center justify-center text-gray-500 group-hover:scale-110 transition-transform duration-300">
                             <i class="fas ${evt.icon} text-lg text-${evt.type === 'food' ? 'rose' : evt.type === 'travel' ? 'blue' : evt.type === 'hotel' ? 'purple' : 'emerald'}-500"></i>
                         </div>
 
-                        <!-- Card -->
                         <div class="glass-card rounded-2xl p-4 ml-4 type-${evt.type} hover:shadow-md transition-shadow">
                             ${budgetBadge}
                             <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">${evt.time}</span>
@@ -293,12 +338,93 @@
                 `;
             });
 
-            html += `
-                    </div>
-                </div>
-            `;
-            
+            html += `</div></div>`;
             contentContainer.innerHTML = html;
+        }
+
+        // --- MAP FUNCTIONS ---
+        function openMap() {
+            mapModal.classList.remove('hidden');
+            // Wait for transition to prevent gray box
+            setTimeout(() => {
+                mapModal.style.opacity = '1';
+                mapModal.style.transform = 'scale(1)';
+                initMap();
+            }, 10);
+        }
+
+        function closeMap() {
+            mapModal.style.opacity = '0';
+            mapModal.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                mapModal.classList.add('hidden');
+            }, 300);
+        }
+
+        function initMap() {
+            const dayData = schedule.find(d => d.id === activeDay);
+            const validPoints = dayData.events.filter(e => e.coords);
+
+            // Clean up existing map
+            if (map) {
+                map.remove();
+                map = null;
+            }
+
+            if (validPoints.length === 0) return;
+
+            // Initialize Leaflet
+            map = L.map('leafletMap', {
+                zoomControl: false // Cleaner look
+            });
+            
+            // Add aesthetic tiles (CartoDB Voyager is clean)
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                attribution: '© OpenStreetMap © CARTO',
+                subdomains: 'abcd',
+                maxZoom: 19
+            }).addTo(map);
+
+            const latlngs = [];
+            
+            validPoints.forEach((pt, index) => {
+                const latlng = pt.coords;
+                latlngs.push(latlng);
+
+                // Custom Numbered Icon
+                const numberIcon = L.divIcon({
+                    className: 'custom-div-icon',
+                    html: `<div class='custom-marker'>${index + 1}</div>`,
+                    iconSize: [30, 30],
+                    iconAnchor: [15, 15]
+                });
+
+                // Add Marker
+                L.marker(latlng, {icon: numberIcon}).addTo(map)
+                    .bindPopup(`<b>${pt.title}</b><br>${pt.time}`);
+            });
+
+            // Draw Dashed Line Route
+            if (latlngs.length > 1) {
+                L.polyline(latlngs, {
+                    color: '#be185d',
+                    weight: 4,
+                    opacity: 0.7,
+                    dashArray: '10, 10',
+                    lineCap: 'round'
+                }).addTo(map);
+            }
+
+            // Fit bounds with padding
+            if (latlngs.length > 0) {
+                 const bounds = L.latLngBounds(latlngs);
+                 map.fitBounds(bounds, { padding: [50, 50] });
+            }
+            
+            // Force map resize to fix gray area bugs
+            setTimeout(() => {
+                map.invalidateSize();
+            }, 200);
         }
 
         // Run
